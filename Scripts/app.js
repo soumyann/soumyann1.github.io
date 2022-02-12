@@ -17,69 +17,83 @@
     {
         console.log("Service Page");
 
-    }       
+    }    
+
     function DisplayHomePage()
     {
-        console.log("home page");
+        console.log("Home Page");
 
-        let AboutUsButton = document.getElementById("AboutUsButton");
-        AboutUsButton.addEventListener("click", function()
+        $("#AboutUsButton").on("click", function()
         {
-            //redirect to about page
             location.href = "about.html";
-
         });
-        
-        // Step 1 get a reference to an entry point(s) (insertion point/)
-        let MainContent = document.getElementsByTagName("main")[0];
-        let DocumentBody = document.body;
-        
-        // Step 2 create an element to insert
-        let MainParagraph = document.createElement("p");
-        let Article=document.createElement("article");
-        let ArticleParagraph=`<p id="ArticleParagraph" class="mt-3">This is the Article Paragraph`;
 
-        // Step 3 configure new element
-        MainParagraph.setAttribute("id", "MainParagraph");
-        MainParagraph.setAttribute("class", "mt-3");
-
-        let FirstString = "This is";
-        let SecondParagraphString = `${FirstString} the Main Paragraph`;
-
-        MainParagraph.textContent = SecondParagraphString;
-        Article.setAttribute("class", "container");
-
-        // Step 4 add/insert new element
-        // exaple of insert after (append)
-        MainContent.appendChild(MainParagraph);
-        Article.innerHTML=ArticleParagraph;
-        DocumentBody.appendChild(Article);
-
-        // DocumentBody.innerHTML = `
-        // <div class="container">
-        // <h1 class="display-1">Hello, World!</h1>
-        // <p clas="mt-5">and...whato do you think of this!</p>
-        // </div>
-        // `;
-        //example of insert before
-        //MainContent.before(MainParagraph);
-
-
-        //example of deletion
-        //document.getElementById("AboutUsButton").remove();
-        //AboutUsButton.remove();
-        // ES6 and HTML5
-
-        // test your new Contact
-        
-
-
+        $("main").append(`<p id="MainParagraph" class="mt-3">This is the Main Paragraph</p>`);
+        //Article.innerHTML = ArticleParagraph;
+        $("body").append(`<article class="container">
+        <p id="ArticleParagraph" class="mt-3">This is the Article Paragraph</p>
+        </article>`);
     }
- 
+
+    /**
+     * Adds a Contact Object to localStorage
+     *
+     * @param {string} fullName
+     * @param {string} contactNumber
+     * @param {string} emailAddress
+     */
+    function AddContact(fullName, contactNumber, emailAddress)
+    {
+        let contact = new core.Contact(fullName, contactNumber, emailAddress);
+        if(contact.serialize())
+        {
+            let key = contact.FullName.substring(0, 1) + Date.now();
+
+            localStorage.setItem(key, contact.serialize());
+        }
+    }
+
+    /**
+     * 
+     * @param {string} input_field_ID 
+     * @param {RegExp} regular_expression 
+     * @param {string} error_message 
+     */
+    function ValidateField(input_field_ID, regular_expression, error_message)
+    {
+        let messageArea = $("#messageArea").hide();
+        
+
+        $("#fullName").on("blur", function()
+        {
+            let input_text_field = $(this).val(); // text inside the fullName text box
+            if(!regular_expression.test(input_text_field)) // RegExp failed to validate
+            {
+                $(this).trigger("focus").trigger("select"); // go back to the fullName text box
+               
+                messageArea.addClass("alert alert-danger").text(error_message).show(); // adds an alert class to the div tag
+                
+            }
+            else // everything is ok
+            {
+                messageArea.removeAttr("class").hide; 
+            }
+            
+        });
+    }
+
+    function ContactFormValidation()
+    {
+        
+        ValidateField("fullName",/^([A-Z][a-z]{1,3}.?\s)?([A-Z][a-z]{1,25})+(\s|,|-)([A-Z][a-z]{1,25})+(\s|,|-)*$/,"Please enter a valid Full Name. This must include at least a Capitalized first name followed by a Capitalized last Name.");
+       ValidateField("contactNumber",/^(\+\d{1,3}[\s-.])?\(?\d{3}\)?[\s-.]?\d{3}[\s-.]?\d{4}$/,"Please enter a valid Contact Number. Example: (905) 555-5555");
+        ValidateField("emailAddress",/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/,"Please enter a valid Email Address.");
+    }
         
     function DisplayContactPage()
     {
         console.log("Contact Us Page");
+        ContactFormValidation();
 
         let sendButton = document.getElementById("sendButton");
         let subscribeCheckbox = document.getElementById("subscribeCheckbox");
@@ -90,18 +104,10 @@
 
             if(subscribeCheckbox.checked)
             {
-                let contact = new Contact(fullName.value, contactNumber.value, emailAddress.value);
-                if(contact.serialize())
-                {
-                    let key = contact.FullName.substring(0, 1) + Date.now();
-
-                    localStorage.setItem(key, contact.serialize());
-                }
+                AddContact(fullName.value, contactNumber.value, emailAddress.value);
             }
         });
-
-    } 
-
+    }
     function DisplayContactListPage()
     {
         console.log("Contact-List Page");
@@ -121,7 +127,7 @@
             {
                 let contactData = localStorage.getItem(key); // retrieve contact data from localStorage
 
-                let contact = new Contact(); // create an empty Contact Object
+                let contact = new core.Contact(); // create an empty Contact Object
                 contact.deserialize(contactData);
 
                 data += `<tr>
@@ -129,8 +135,8 @@
                 <td>${contact.FullName}</td>
                 <td>${contact.ContactNumber}</td>
                 <td>${contact.EmailAddress}</td>
-                <td></td>
-                <td></td>
+                <td class="text-center"><button value="${key}" class="btn btn-primary btn-sm edit"><i class="fas fa-edit fa-sm"></i> Edit</button></td>
+                <td class="text-center"><button value="${key}" class="btn btn-danger btn-sm delete"><i class="fas fa-trash-alt fa-sm"></i> Delete</button></td>
                 </tr>
                 `;
                 
@@ -138,10 +144,111 @@
             }
 
             contactList.innerHTML = data;
+
+            $("#addButton").on("click", () =>
+            {
+                location.href = "edit.html#add";
+            });
+
+            $("button.delete").on("click", function()
+            {
+                if(confirm("Are you sure?"))
+                {
+                    localStorage.removeItem($(this).val());
+                }
+                
+                location.href = "contacts-list.html";
+            });
+
+            $("button.edit").on("click", function() 
+            {
+                location.href = "edit.html#" + $(this).val();
+            });
         }
+    }
+
+    function DisplayEditPage()
+    {
+        console.log("Edit Page");
+
+        ContactFormValidation();
+
+        let page = location.hash.substring(1);
+
+        switch(page)
+        {
+            case "add":
+                {
+                    $("main>h1").text("Add Contact");
+
+                    $("#editButton").html(`<i class="fas fa-plus-circle fa-lg"></i> Add`);
+
+                    $("#editButton").on("click", (event) => 
+                    {
+                        event.preventDefault();
+                        // Add Contactt
+                        AddContact(fullName.value, contactNumber.value, emailAddress.value);
+                        // Refresh the contact-list page
+                        location.href ="contacts-list.html";
+                    });
+
+                    $("#cancelButton").on("click", () =>
+                    {
+                        location.href ="contacts-list.html";
+                    });
+
+                }
+                break;
+            default:
+                {
+                    // get the contact info from localStorage
+                    let contact = new core.Contact();
+                    contact.deserialize(localStorage.getItem(page));
+
+                    // display the contact info in the edit form
+                    $("#fullName").val(contact.FullName);
+                    $("#contactNumber").val(contact.ContactNumber);
+                    $("#emailAddress").val(contact.EmailAddress);
+
+                    // when Edit is pressed - update the contact
+                    $("#editButton").on("click", (event)=>
+                    {
+                        event.preventDefault();
+
+                        // get any changes from the form
+                        contact.FullName = $("#fullName").val();
+                        contact.ContactNumber = $("#contactNumber").val();
+                        contact.EmailAddress = $("#emailAddress").val();
+
+                        // replace the item in localStorage
+                        localStorage.setItem(page, contact.serialize());
+
+                        // return to the contact-list
+                        location.href ="contact-list.html";
+                    });
+
+                    $("#cancelButton").on("click", () =>
+                    {
+                        location.href ="contacts-list.html";
+                    });
+                    
+                }
+                break;
+        }
+    }
+
+    function DisplayLoginPage()
+    {
+        console.log1("Login Page");
 
     }
-    
+    function DisplayRegisterPage()
+    {
+        console.log1("Register Page");
+
+    }
+
+
     // named function option
     function Start()
     {
@@ -166,11 +273,18 @@
             case "Our Services":
                 DisplayServicesPage();
                 break;
-            
+            case "Edit":
+                DisplayEditPage();
+                break;
+            case "Login":
+                DisplayLoginPage();
+                break;
+            case "Register":
+                DisplayRegisterPage();
+                break;
             
         }        
-    }
-    
+    }   
     
     window.addEventListener("load", Start);
 
